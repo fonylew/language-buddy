@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADK Character Frontend</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        video {
+            width: 100%;
+            max-height: 450px;
+            background-color: #2c3e50;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+            object-fit: contain; /* Ensure the video fits within the frame */
+        }
+        button {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .primary-button {
+            background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border: none;
+        }
+        .primary-button:hover {
+            background-image: linear-gradient(to right, #5a0ecc 0%, #1a60e0 100%);
+        }
+        .secondary-button {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            border: 1px solid #cbd5e0;
+        }
+        .secondary-button:hover {
+            background-color: #cfd8e3;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            padding: 12px;
+            font-size: 1rem;
+            color: #4a5568;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.2);
+        }
+        .message-box {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+        .message-box p {
+            margin-bottom: 8px;
+        }
+        .message-box p:last-child {
+            margin-bottom: 0;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #cbd5e0; /* Default: grey */
+            transition: background-color 0.3s ease;
+        }
+        .status-dot.connected {
+            background-color: #22c55e; /* Green */
+        }
+        .status-dot.connecting {
+            background-color: #facc15; /* Yellow */
+        }
+        .status-dot.disconnected {
+            background-color: #ef4444; /* Red */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">ADK Character Frontend</h1>
+
+        <!-- Video Stream -->
+        <video id="remoteVideo" autoplay playsinline controls></video>
+
+        <!-- Connection Controls -->
+        <div class="flex flex-col sm:flex-row gap-4">
+            <button id="connectButton" class="primary-button flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                </svg>
+                Connect
+            </button>
+            <button id="disconnectButton" class="secondary-button flex-1" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                Disconnect
+            </button>
+        </div>
+
+        <!-- Status Indicator -->
+        <div class="status-indicator">
+            <div id="statusDot" class="status-dot disconnected"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <!-- Text Input and Send -->
+        <div class="flex flex-col gap-4">
+            <textarea id="textInput" placeholder="Type your message here..." class="w-full"></textarea>
+            <button id="sendButton" class="primary-button" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+                Send Message
+            </button>
+        </div>
+
+        <!-- Message Display -->
+        <div id="messageBox" class="message-box">
+            <p>Welcome! Connect to start streaming.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const remoteVideo = document.getElementById('remoteVideo');
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const textInput = document.getElementById('textInput');
+        const sendButton = document.getElementById('sendButton');
+        const messageBox = document.getElementById('messageBox');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // WebRTC variables
+        let peerConnection;
+        let dataChannel;
+        let ws; // WebSocket for signaling
+        let localStream; // To hold the microphone stream
+
+        // Configuration (replace with your actual ADK streaming endpoint)
+        // This is a placeholder. You would typically get this from your ADK backend.
+        const ADK_SIGNALING_SERVER_URL = 'ws://localhost:8080/adk-signaling'; // Example WebSocket URL
+
+        // Function to update connection status
+        function updateStatus(status, message) {
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = message;
+            logMessage(`Status: ${message}`);
+        }
+
+        // Function to log messages to the UI
+        function logMessage(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            messageBox.appendChild(p);
+            messageBox.scrollTop = messageBox.scrollHeight; // Scroll to bottom
+        }
+
+        // Function to establish WebSocket connection for signaling
+        async function connectWebSocket() {
+            updateStatus('connecting', 'Connecting to signaling server...');
+            
+            // Request microphone access
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                logMessage('Microphone access granted.');
+            } catch (e) {
+                console.error('Error accessing microphone:', e);
+                logMessage(`Error accessing microphone: ${e.message}. Please allow microphone access.`);
+                updateStatus('disconnected', 'Microphone access denied.');
+                return; // Stop connection process if microphone access fails
+            }
+
+            ws = new WebSocket(ADK_SIGNALING_SERVER_URL);
+
+            ws.onopen = () => {
+                logMessage('WebSocket connected.');
+                updateStatus('connecting', 'Signaling server connected. Ready to offer.');
+                createPeerConnection();
+            };
+
+            ws.onmessage = async (event) => {
+                const message = JSON.parse(event.data);
+                logMessage(`Received signaling message: ${message.type}`);
+
+                if (message.type === 'answer') {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
+                    updateStatus('connecting', 'Received answer. Setting remote description.');
+                } else if (message.type === 'candidate') {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
+                        logMessage('Added ICE candidate.');
+                    } catch (e) {
+                        console.error('Error adding received ICE candidate:', e);
+                        logMessage(`Error adding ICE candidate: ${e.message}`);
+                    }
+                } else if (message.type === 'offer') {
+                    // This client is acting as the offerer, so it shouldn't receive offers.
+                    // If it does, it implies a different signaling flow or an error.
+                    console.warn('Received an unexpected offer. This client is configured as the offerer.');
+                    logMessage('Received unexpected offer.');
+                }
+            };
+
+            ws.onclose = () => {
+                logMessage('WebSocket disconnected.');
+                updateStatus('disconnected', 'Signaling server disconnected.');
+                cleanup();
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                logMessage(`WebSocket error: ${error.message || 'Unknown error'}`);
+                updateStatus('disconnected', 'Signaling error. Check console.');
+                cleanup();
+            };
+        }
+
+        // Function to create RTCPeerConnection
+        async function createPeerConnection() {
+            // STUN/TURN servers (Google's public STUN server is commonly used)
+            const configuration = {
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            };
+
+            peerConnection = new RTCPeerConnection(configuration);
+            logMessage('RTCPeerConnection created.');
+
+            // Add microphone track to the peer connection
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                    logMessage(`Added local track: ${track.kind}`);
+                });
+            }
+
+            // Event: ICE Candidate
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    logMessage('Sending ICE candidate.');
+                    ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+                }
+            };
+
+            // Event: Track received (for video/audio from the character)
+            peerConnection.ontrack = (event) => {
+                if (remoteVideo.srcObject !== event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                    logMessage('Remote stream received and attached to video element.');
+                    updateStatus('connected', 'Connected to character!');
+                    disconnectButton.disabled = false;
+                    sendButton.disabled = false;
+                    connectButton.disabled = true;
+                }
+            };
+
+            // Event: Data Channel (for sending text messages)
+            dataChannel = peerConnection.createDataChannel("chat");
+            logMessage('DataChannel created.');
+
+            dataChannel.onopen = () => {
+                logMessage('DataChannel opened.');
+                sendButton.disabled = false;
+            };
+
+            dataChannel.onmessage = (event) => {
+                logMessage(`Character says: ${event.data}`);
+            };
+
+            dataChannel.onclose = () => {
+                logMessage('DataChannel closed.');
+                sendButton.disabled = true;
+            };
+
+            dataChannel.onerror = (error) => {
+                console.error('DataChannel error:', error);
+                logMessage(`DataChannel error: ${error.message}`);
+            };
+
+            // Create an offer and set it as local description
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                logMessage('Offer created and set as local description.');
+                ws.send(JSON.stringify(offer)); // Send offer to signaling server
+                updateStatus('connecting', 'Offer sent. Waiting for answer...');
+            } catch (e) {
+                console.error('Error creating or setting offer:', e);
+                logMessage(`Error creating offer: ${e.message}`);
+                updateStatus('disconnected', 'Failed to create WebRTC offer.');
+                cleanup();
+            }
+        }
+
+        // Function to send text message
+        function sendMessage() {
+            const message = textInput.value.trim();
+            if (message && dataChannel && dataChannel.readyState === 'open') {
+                dataChannel.send(message);
+                logMessage(`You: ${message}`);
+                textInput.value = ''; // Clear input
+            } else if (!dataChannel || dataChannel.readyState !== 'open') {
+                logMessage('Error: DataChannel is not open. Cannot send message.');
+            } else if (!message) {
+                logMessage('Please enter a message to send.');
+            }
+        }
+
+        // Function to clean up connections
+        function cleanup() {
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            // Stop local microphone stream tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                logMessage('Microphone stream stopped.');
+            }
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            remoteVideo.srcObject = null;
+            connectButton.disabled = false;
+            disconnectButton.disabled = true;
+            sendButton.disabled = true;
+            updateStatus('disconnected', 'Disconnected.');
+            logMessage('Connection cleaned up.');
+        }
+
+        // Event Listeners
+        connectButton.addEventListener('click', connectWebSocket);
+        disconnectButton.addEventListener('click', cleanup);
+        sendButton.addEventListener('click', sendMessage);
+        textInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) { // Send on Enter, allow Shift+Enter for new line
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initial state setup
+        updateStatus('disconnected', 'Ready to connect.');
+    </script>
+</body>
+</html>
